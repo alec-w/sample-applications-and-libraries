@@ -1,0 +1,59 @@
+openapi: 3.0.0
+info:
+  title: Sample REST API
+  version: 0.0.1
+paths:
+  /posts:
+    get:
+      summary: Lists posts
+      description: Lists all posts subject to the supplied filters
+      parameters:
+        - name: created_after
+          in: query
+          description: Restricts the list of posts to those created after (inclusive) this datetime.
+          schema:
+            type: string
+            format: datetime
+        - name: created_before
+          in: query
+          description: Restricts the list of posts to those created before (exclusive) this datetime.
+          schema:
+            type: string
+            format: datetime
+        # TODO add pagination fields
+      responses:
+        200:
+          description: A successful list of posts that met the supplied filters
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - posts
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostResponse'
+        # TODO add error codes
+    # TODO add create endpoint
+  # TODO add get single, update and delete endpoints
+components:
+  schemas:
+    PostResponse:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        created_at:
+          type: string
+          format: datetime
