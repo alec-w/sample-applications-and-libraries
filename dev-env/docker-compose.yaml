@@ -9,7 +9,7 @@ services:
             - ..:/home/dev/working_dir
         working_dir: /home/dev/working_dir
         environment:
-            POSTGRES_PASSWORD: postgres
+            PGPASSWORD: postgres
 
     postgres:
         image: postgres:17.5

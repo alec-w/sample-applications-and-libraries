@@ -1,0 +1,7 @@
+Dockerfile
+.dockerignore
+data.csv
+functional-tests
+oapi-codegen.config.yaml
+openapi.yaml
+truncate.sql

@@ -25,6 +25,10 @@ dev-env/down: ## Tear the development environment down
 dev-env/shell: ## Start a shell in the development environment
 	docker compose -f $(DEV_ENV_DOCKER_COMPOSE_YAML) exec dev bash
 
+.PHONY: database/connect
+database/connect: ## Connect to the postgres database
+	psql -h postgres -U postgres -d postgres
+
 .PHONY: rest-api/validate-spec
 rest-api/validate-spec: ## Validates REST API application's OpenAPI spec
 	validate-api applications/rest-api/openapi.yaml
@@ -49,6 +53,11 @@ rest-api/database/populate: ## Populate the REST API application's database from
 rest-api/database/truncate: ## Truncates all data in the REST API application's database, but leaves schema unchanged
 	psql -h postgres -U postgres -d postgres -f applications/rest-api/truncate.sql
 
-.PHONY: database/connect
-database/connect: ## Connect to the postgres database
-	psql -h postgres -U postgres -d postgres
+.PHONY: rest-api/image/build
+rest-api/image/build: ## Builds REST API application container image
+	docker build -f applications/rest-api/Dockerfile .
+
+.PHONY: rest-api/tests/functional
+rest-api/tests/functional: ## Runs functional tests for the REST API application
+	docker compose -f applications/rest-api/functional-tests/docker-compose.yaml up tests
+	docker compose -f applications/rest-api/functional-tests/docker-compose.yaml down -v

@@ -10,6 +10,7 @@ require (
 	github.com/alec-w/sample-applications-and-libraries/libraries/logging v0.0.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
