@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alec-w/sample-applications-and-libraries/applications/rest-api/internal/api"
+	"github.com/alec-w/sample-applications-and-libraries/applications/rest-api/internal/database"
 	"github.com/alec-w/sample-applications-and-libraries/libraries/logging"
 )
 
@@ -21,9 +22,15 @@ const (
 )
 
 const (
-	// TODO - make these passed through as args / flags / env vars / config file
+	// TODO - make these passed through as args / flags / env vars / config file / fetched/mounted from secret stores
 	defaultPort            = 8080
 	defaultShutdownTimeout = 5 * time.Second
+	logLevel               = slog.LevelDebug
+	databaseHost           = "postgres"
+	databaseUser           = "postgres"
+	databaseName           = "postgres"
+	databasePassword       = "postgres"
+	databasePort           = 5432
 )
 
 func main() {
@@ -34,8 +41,13 @@ func main() {
 
 func app(ctx context.Context) int {
 	// Components for app
-	logger := logging.NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
-	server := api.NewServer(8080, logger)
+	logger := logging.NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+	database, err := database.NewDatabase(ctx, databaseHost, databaseUser, databaseName, databasePassword, databasePort, logger)
+	if err != nil {
+		logger.WithError(err).Error("failed to instantiate database")
+		return EXIT_CODE_FAILURE
+	}
+	server := api.NewServer(8080, logger, database)
 
 	// Listen for shutdown signals
 	shutdown := make(chan os.Signal, 1)

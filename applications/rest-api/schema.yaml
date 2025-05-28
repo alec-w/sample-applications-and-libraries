@@ -35,6 +35,17 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/PostResponse'
+        500:
+          description: An internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
         # TODO add error codes
     # TODO add create endpoint
   # TODO add get single, update and delete endpoints

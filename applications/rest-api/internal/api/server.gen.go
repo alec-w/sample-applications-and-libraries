@@ -227,6 +227,17 @@ func (response GetPosts200JSONResponse) VisitGetPostsResponse(w http.ResponseWri
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetPosts500JSONResponse struct {
+	Message string `json:"message"`
+}
+
+func (response GetPosts500JSONResponse) VisitGetPostsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Lists posts

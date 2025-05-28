@@ -8,3 +8,6 @@ services:
         volumes:
             - ..:/home/dev/working_dir
         working_dir: /home/dev/working_dir
+
+    postgres:
+        image: postgres:17.5
