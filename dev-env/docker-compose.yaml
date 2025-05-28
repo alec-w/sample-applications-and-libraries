@@ -8,6 +8,10 @@ services:
         volumes:
             - ..:/home/dev/working_dir
         working_dir: /home/dev/working_dir
+        environment:
+            POSTGRES_PASSWORD: postgres
 
     postgres:
         image: postgres:17.5
+        environment:
+            POSTGRES_PASSWORD: postgres

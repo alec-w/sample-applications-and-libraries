@@ -1,0 +1,2 @@
+TRUNCATE posts;
+ALTER SEQUENCE posts_id_seq RESTART WITH 1;

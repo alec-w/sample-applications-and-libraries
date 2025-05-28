@@ -27,8 +27,28 @@ dev-env/shell: ## Start a shell in the development environment
 
 .PHONY: rest-api/validate-spec
 rest-api/validate-spec: ## Validates REST API application's OpenAPI spec
-	validate-api applications/rest-api/schema.yaml
+	validate-api applications/rest-api/openapi.yaml
 
 .PHONY: rest-api/generate
 rest-api/generate: ## (Re)generate generated code for the REST API application
 	cd applications/rest-api && go generate
+
+.PHONY: rest-api/database/up
+rest-api/database/up: ## Apply the up migrations for the REST API application's database
+	psql -h postgres -U postgres -d postgres -f applications/rest-api/internal/database/migrations/up.sql
+
+.PHONY: rest-api/database/down
+rest-api/database/down: ## Apply the down migrations for the REST API application's database
+	psql -h postgres -U postgres -d postgres -f applications/rest-api/internal/database/migrations/down.sql
+
+.PHONY: rest-api/database/populate
+rest-api/database/populate: ## Populate the REST API application's database from a CSV
+	psql -h postgres -U postgres -d postgres -c "\copy posts(title,content,created_at) FROM 'applications/rest-api/data.csv' DELIMITER ',' CSV"
+
+.PHONY: rest-api/database/truncate
+rest-api/database/truncate: ## Truncates all data in the REST API application's database, but leaves schema unchanged
+	psql -h postgres -U postgres -d postgres -f applications/rest-api/truncate.sql
+
+.PHONY: database/connect
+database/connect: ## Connect to the postgres database
+	psql -h postgres -U postgres -d postgres

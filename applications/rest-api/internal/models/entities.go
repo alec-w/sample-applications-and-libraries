@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Post struct {
-	Id        string
+	Id        int
 	Title     string
 	Content   string
 	CreatedAt time.Time

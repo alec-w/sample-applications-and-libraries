@@ -11,7 +11,8 @@ import (
 )
 
 type Datastore interface {
-	ListPosts() ([]models.Post, error)
+	CreatePost(ctx context.Context, title, content string, createdAt time.Time) (models.Post, error)
+	ListPosts(ctx context.Context) ([]models.Post, error)
 }
 
 // server is internal implmentation of generated strict API interface
@@ -36,15 +37,36 @@ func NewServer(port int, logger logging.Logger, datastore Datastore) *http.Serve
 // GetPosts implements (GET /posts) API endpoint
 func (s *server) GetPosts(ctx context.Context, request GetPostsRequestObject) (GetPostsResponseObject, error) {
 	s.logger.Debug("Serving list posts request")
-	posts, err := s.datastore.ListPosts()
+	posts, err := s.datastore.ListPosts(ctx)
 	if err != nil {
 		s.logger.WithError(err).Error("failed to list posts")
 		return GetPosts500JSONResponse{
-			Message: "An internal error occurred.",
+			InternalErrorJSONResponse: InternalErrorJSONResponse{
+				Message: "An internal error occurred.",
+			},
 		}, nil
 	}
 	resp := GetPosts200JSONResponse{
 		Posts: postsToApiResponses(posts),
+	}
+
+	return resp, nil
+}
+
+// PostPosts implements (POST /posts) API endpoint
+func (s *server) PostPosts(ctx context.Context, request PostPostsRequestObject) (PostPostsResponseObject, error) {
+	s.logger.Debug("Serving create post request")
+	post, err := s.datastore.CreatePost(ctx, request.Body.Title, request.Body.Content, time.Now())
+	if err != nil {
+		s.logger.WithError(err).Error("failed to list posts")
+		return PostPosts500JSONResponse{
+			InternalErrorJSONResponse: InternalErrorJSONResponse{
+				Message: "An internal error occurred.",
+			},
+		}, nil
+	}
+	resp := PostPosts201JSONResponse{
+		Post: postToApiResponse(post),
 	}
 
 	return resp, nil

@@ -36,18 +36,41 @@ paths:
                     items:
                       $ref: '#/components/schemas/PostResponse'
         500:
-          description: An internal error
+          $ref: '#/components/responses/InternalError'
+        # TODO add error codes
+    post:
+      summary: Creates a post
+      description: Creates a post
+      requestBody:
+        description: Details of the post to create
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        201:
+          description: The successfully created post
           content:
             application/json:
               schema:
                 type: object
                 required:
-                  - message
+                  - post
                 properties:
-                  message:
-                    type: string
+                  post:
+                    $ref: '#/components/schemas/PostResponse'
+        500:
+          $ref: '#/components/responses/InternalError'
         # TODO add error codes
-    # TODO add create endpoint
   # TODO add get single, update and delete endpoints
 components:
   schemas:
@@ -60,7 +83,7 @@ components:
         - created_at
       properties:
         id:
-          type: string
+          type: integer
         title:
           type: string
         content:
@@ -68,3 +91,17 @@ components:
         created_at:
           type: string
           format: datetime
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+  responses:
+    InternalError:
+      description: An internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

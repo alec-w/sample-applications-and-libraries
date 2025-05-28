@@ -15,13 +15,21 @@ import (
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
 
+// Error defines model for Error.
+type Error struct {
+	Message string `json:"message"`
+}
+
 // PostResponse defines model for PostResponse.
 type PostResponse struct {
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
-	Id        string `json:"id"`
+	Id        int    `json:"id"`
 	Title     string `json:"title"`
 }
+
+// InternalError defines model for InternalError.
+type InternalError = Error
 
 // GetPostsParams defines parameters for GetPosts.
 type GetPostsParams struct {
@@ -32,11 +40,23 @@ type GetPostsParams struct {
 	CreatedBefore *string `form:"created_before,omitempty" json:"created_before,omitempty"`
 }
 
+// PostPostsJSONBody defines parameters for PostPosts.
+type PostPostsJSONBody struct {
+	Content string `json:"content"`
+	Title   string `json:"title"`
+}
+
+// PostPostsJSONRequestBody defines body for PostPosts for application/json ContentType.
+type PostPostsJSONRequestBody PostPostsJSONBody
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Lists posts
 	// (GET /posts)
 	GetPosts(w http.ResponseWriter, r *http.Request, params GetPostsParams)
+	// Creates a post
+	// (POST /posts)
+	PostPosts(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -74,6 +94,20 @@ func (siw *ServerInterfaceWrapper) GetPosts(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetPosts(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostPosts operation middleware
+func (siw *ServerInterfaceWrapper) PostPosts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostPosts(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -204,9 +238,12 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/posts", wrapper.GetPosts)
+	m.HandleFunc("POST "+options.BaseURL+"/posts", wrapper.PostPosts)
 
 	return m
 }
+
+type InternalErrorJSONResponse Error
 
 type GetPostsRequestObject struct {
 	Params GetPostsParams
@@ -227,11 +264,37 @@ func (response GetPosts200JSONResponse) VisitGetPostsResponse(w http.ResponseWri
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetPosts500JSONResponse struct {
-	Message string `json:"message"`
-}
+type GetPosts500JSONResponse struct{ InternalErrorJSONResponse }
 
 func (response GetPosts500JSONResponse) VisitGetPostsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostPostsRequestObject struct {
+	Body *PostPostsJSONRequestBody
+}
+
+type PostPostsResponseObject interface {
+	VisitPostPostsResponse(w http.ResponseWriter) error
+}
+
+type PostPosts201JSONResponse struct {
+	Post PostResponse `json:"post"`
+}
+
+func (response PostPosts201JSONResponse) VisitPostPostsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostPosts500JSONResponse struct{ InternalErrorJSONResponse }
+
+func (response PostPosts500JSONResponse) VisitPostPostsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -243,6 +306,9 @@ type StrictServerInterface interface {
 	// Lists posts
 	// (GET /posts)
 	GetPosts(ctx context.Context, request GetPostsRequestObject) (GetPostsResponseObject, error)
+	// Creates a post
+	// (POST /posts)
+	PostPosts(ctx context.Context, request PostPostsRequestObject) (PostPostsResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -293,6 +359,37 @@ func (sh *strictHandler) GetPosts(w http.ResponseWriter, r *http.Request, params
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetPostsResponseObject); ok {
 		if err := validResponse.VisitGetPostsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostPosts operation middleware
+func (sh *strictHandler) PostPosts(w http.ResponseWriter, r *http.Request) {
+	var request PostPostsRequestObject
+
+	var body PostPostsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostPosts(ctx, request.(PostPostsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostPosts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostPostsResponseObject); ok {
+		if err := validResponse.VisitPostPostsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

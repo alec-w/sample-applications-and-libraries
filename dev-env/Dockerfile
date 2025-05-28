@@ -7,9 +7,10 @@ RUN useradd dev --create-home && \
     echo "dev:pass" | chpasswd && \
     adduser dev sudo
 
-# bash-completion, bsdmainutils (column), gcc, make and vim are useful development tools
+# bash-completion, bsdmainutils (column), gcc, jq, make and vim are useful development tools
 # curl is needed for installation of Go and other tools
 # git is needed to run commands such as go mod tidy during development
+# postgresql-client install psql for connecting to postgres databases
 # sudo is useful to have inside development container, to add missing tools
 # wget is used to download tools
 RUN apt-get update && apt-get -y install \
@@ -18,7 +19,9 @@ RUN apt-get update && apt-get -y install \
     curl \
     gcc \
     git \
+    jq \
     make \
+    postgresql-client \
     sudo \
     vim \
     wget
